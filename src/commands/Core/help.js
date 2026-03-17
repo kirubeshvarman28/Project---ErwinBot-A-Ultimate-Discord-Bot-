@@ -38,6 +38,7 @@ const CATEGORY_ICONS = {
     Community: "👥",
     Birthday: "🎂",
     Config: "⚙️",
+    Trading: "💹",
 };
 
 
@@ -147,6 +148,11 @@ async function createInitialHelpMenu() {
         {
             name: "✅ **Verification**",
             value: "Member verification workflows and access gating",
+            inline: true
+        },
+        {
+            name: "💹 **Trading**",
+            value: "Trading rules, checklist, mistake logs, and journals",
             inline: true
         },
         {
