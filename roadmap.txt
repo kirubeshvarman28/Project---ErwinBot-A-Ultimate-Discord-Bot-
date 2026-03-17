@@ -1,0 +1,71 @@
+ErwinBot Roadmap / Structure Overview 
+
+Goal
+- Keep this as a practical map of the codebase.
+- Show main folders and important files only (not every file).
+
+Root
+- index.js                    -> process entry point
+- package.json                -> scripts, dependencies, project metadata
+- README.md                   -> setup and usage docs
+- SECURITY.md                 -> security policy
+- scripts/                    -> utility/maintenance scripts
+- database/                   -> database model definitions
+- logs/                       -> runtime log output
+- src/                        -> main bot application code
+
+src/
+- app.js                      -> creates client, initializes systems
+
+- commands/                   -> slash command categories
+  - Core/                     -> essential bot commands
+    - help.js, ping.js, stats.js, uptime.js, invite.js
+  - Community/                -> application/community commands
+  - Config/                   -> server/bot configuration commands
+  - Counter/                  -> counter channel commands
+  - Economy/                  -> economy system commands
+  - Moderation/               -> moderation/admin commands
+  - Ticket/                   -> ticket system commands
+  - Verification/             -> verification commands
+  - JoinToCreate/             -> dynamic voice channel commands
+  - Reaction_roles/           -> role assignment commands
+  - (Also includes: Birthday, Fun, Giveaway, Leveling, Search, Tools, Utility, Voice, Welcome)
+
+- config/                     -> centralized configuration
+  - index.js                  -> config loader/exports
+  - bot.js                    -> bot settings, embed theme/colors, feature flags
+  - postgres.js               -> PostgreSQL config
+  - shop/                     -> shop config entries
+
+- events/                     -> Discord event listeners
+  - ready.js, interactionCreate.js, messageCreate.js
+  - guildMemberAdd.js, guildMemberRemove.js, voiceStateUpdate.js
+
+- handlers/                   -> loader/router layer for commands/interactions
+  - commandLoader.js, commands.js, events.js, interactions.js
+  - helpSelectMenuLoader.js, helpButtons.js
+  - ticketButtons.js, verificationButtonLoader.js
+
+- interactions/               -> interaction-specific handlers
+  - verificationButtonHandler.js
+  - selectMenus/              -> select menu handlers
+
+- services/                   -> business logic + data operations
+  - database.js               -> storage abstraction
+  - guildConfig.js            -> guild-level settings service
+  - ticket.js, giveawayService.js, reactionRoleService.js
+  - leveling.js, xpSystem.js, economy.js, counterService.js
+
+- utils/                      -> shared helpers/utilities
+  - embeds.js                 -> standardized embed creation
+  - components.js             -> Discord UI component builders
+  - logger.js                 -> logging utility
+  - postgresDatabase.js, memoryStorage.js, schemas.js
+  - errorHandler.js, permissionGuard.js, interactionHelper.js
+
+Database models
+- database/models/welcomeSystem.js -> welcome system schema/model
+
+Notes
+- This project is modular by feature area: commands -> handlers -> services -> utils.
+- bot.js is the single source of truth for embed theming/colors and core bot config.

@@ -1,0 +1,132 @@
+import { SlashCommandBuilder } from 'discord.js';
+import { createEmbed, errorEmbed, successEmbed, infoEmbed, warningEmbed } from '../../utils/embeds.js';
+
+import { getEconomyKey } from '../../utils/database.js';
+import { botConfig } from '../../config/bot.js';
+import { withErrorHandling, createError, ErrorTypes } from '../../utils/errorHandler.js';
+import { logger } from '../../utils/logger.js';
+import { InteractionHelper } from '../../utils/interactionHelper.js';
+
+export default {
+    data: new SlashCommandBuilder()
+        .setName("eleaderboard")
+        .setDescription("View the server's top 10 richest users.")
+        .addStringOption((option) =>
+            option
+                .setName("sort_by")
+                .setDescription("The metric to sort the leaderboard by.")
+                .addChoices(
+                    { name: "Net Worth (Cash + Bank)", value: "net_worth" },
+                    { name: "Cash", value: "cash" },
+                    { name: "Bank", value: "bank" },
+                )
+                .setRequired(false),
+        )
+        .setDMPermission(false),
+    
+    
+    execute: withErrorHandling(async (interaction, config, client) => {
+        const deferred = await InteractionHelper.safeDefer(interaction);
+        if (!deferred) return;
+
+            const guildId = interaction.guildId;
+            const sortBy = interaction.options.getString("sort_by") || "net_worth";
+
+            logger.debug(`[ECONOMY] Leaderboard requested`, { guildId, sortBy });
+
+            const prefix = `guild:${guildId}:economy:`;
+
+            let allKeys = await client.db.list(prefix);
+
+            if (!Array.isArray(allKeys)) {
+                allKeys = [];
+            }
+
+            if (allKeys.length === 0) {
+                throw createError(
+                    "No economy data found",
+                    ErrorTypes.VALIDATION,
+                    "No economy data found for this server."
+                );
+            }
+
+            let allUserData = [];
+
+            for (const key of allKeys) {
+                const userId = key.replace(prefix, "");
+                const userData = await client.db.get(key);
+
+                if (userData) {
+                    allUserData.push({
+                        userId: userId,
+                        cash: userData.wallet || 0,
+                        bank: userData.bank || 0,
+                        net_worth: (userData.wallet || 0) + (userData.bank || 0),
+                    });
+                }
+            }
+
+            allUserData.sort((a, b) => {
+                if (sortBy === "net_worth") return b.net_worth - a.net_worth;
+                if (sortBy === "cash") return b.cash - a.cash;
+                if (sortBy === "bank") return b.bank - a.bank;
+return b.net_worth - a.net_worth;
+            });
+
+            const topUsers = allUserData.slice(0, 10);
+            const userRank =
+                allUserData.findIndex((u) => u.userId === interaction.user.id) +
+                1;
+            const rankEmoji = ["🥇", "🥈", "🥉"];
+            const leaderboardEntries = [];
+
+            for (let i = 0; i < topUsers.length; i++) {
+                const user = topUsers[i];
+                const member = await interaction.guild.members
+                    .fetch(user.userId)
+                    .catch(() => null);
+                const username = member
+                    ? member.user.username
+                    : `Unknown User (${user.userId})`;
+                const rank = i + 1;
+                const emoji = rankEmoji[i] || `**#${rank}**`;
+                const value =
+                    sortBy === "net_worth"
+                        ? user.net_worth
+                        : sortBy === "cash"
+                          ? user.cash
+                          : user.bank;
+
+                leaderboardEntries.push(
+                    `${emoji} **${username}** - $${value.toLocaleString()}`,
+                );
+            }
+
+            const fieldNameMap = {
+                net_worth: "Net Worth (Cash + Bank)",
+                cash: "Cash Balance",
+                bank: "Bank Balance",
+            };
+
+            logger.info(`[ECONOMY] Leaderboard generated`, { 
+                guildId, 
+                sortBy, 
+                userCount: allUserData.length,
+                userRank 
+            });
+
+            const embed = createEmbed(
+                `👑 Economy Leaderboard (${fieldNameMap[sortBy]})`,
+                leaderboardEntries.join("\n"),
+            ).setFooter({
+                text: `Your Rank: ${userRank > 0 ? userRank : "Not Ranked"} | Data sorted by ${fieldNameMap[sortBy]}`,
+            });
+
+            await InteractionHelper.safeEditReply(interaction, { embeds: [embed] });
+    }, { command: 'eleaderboard' })
+};
+
+
+
+
+

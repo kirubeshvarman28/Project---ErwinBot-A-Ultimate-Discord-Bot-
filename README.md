@@ -1,0 +1,259 @@
+# 🤖 ErwinBot - Ultimate Discord Bot
+
+**ErwinBot** is a powerful, feature-rich Discord bot designed to enhance your server experience with comprehensive moderation tools, engaging economy systems, utility features, and much more. Built with modern Discord.js v14 and PostgreSQL for optimal performance and data persistence.
+
+[![Support Server](https://img.shields.io/badge/-Support%20Server-%235865F2?logo=discord&logoColor=white&style=flat-square&logoWidth=20)](https://discord.gg/YOUR_INVITE)
+[![Discord.js](https://img.shields.io/npm/v/discord.js?style=flat-square&labelColor=%23202225&color=%23202225&logo=npm&logoColor=white&logoWidth=20)](https://www.npmjs.com/package/discord.js)
+![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-%23336791?logo=postgresql&logoColor=white&style=flat-square&logoWidth=20)
+
+## 📚 Table of Contents
+
+- [🌟 Features Overview](#features-overview)
+- [🚀 Quick Setup](#quick-setup)
+- [⚙️ Manual Installation Steps](#manual-installation-steps)
+- [🗄️ Database System](#database-system)
+- [🌐 Support Server](https://discord.gg/QnWNz2dKCE)
+- [🏗️ Bot Architecture](#bot-architecture)
+- [🤝 Contributing](#contributing)
+
+<a name="features-overview"></a>
+## 🌟 Features Overview
+
+ErwinBot offers a complete suite of tools for Discord server management and community engagement:
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🛡️ Moderation & Administration
+- **Mass Actions** - Bulk ban/kick capabilities
+- **User Notes** - Keep detailed moderation records
+- **Case Management** - View and track all mod actions
+
+### 💰 Economy System
+- **Shop & Inventory** - Buy and manage items
+- **Gambling** - Risk it for rewards
+- **Pay System** - Transfer money between users
+
+### 🎮 Fun & Entertainment
+- **Random Facts** - Learn something new
+- **Wanted Poster** - Create fun wanted images
+- **Text Reversal** - Reverse any text
+
+### 🎫 Advanced Ticket System
+- **Claim & Priority** - Staff ticket management
+- **Ticket Limits** - Prevent spam
+- **Transcript System** - Save ticket history
+
+### 🔢 Server Counters
+- **Member Counter** - Live member count channels
+- **Voice Counters** - Track voice stats
+- **Dynamic Updates** - Real-time channel updates
+
+### 🎭 Reaction Roles
+- **Role Assignment** - Self-assignable roles
+- **Emoji Selection** - Reaction-based system
+- **Multi-role Support** - Multiple role options
+
+</td>
+<td width="50%" valign="top">
+
+### 📊 Leveling & XP System
+- **XP Tracking** - Automatic message-based XP
+- **Level Roles** - Auto-assign roles by level
+- **Custom Configuration** - Personalize leveling
+
+### 🎉 Giveaways & Events
+- **Multiple Winners** - Support multi-winner giveaways
+- **Auto Picking** - Automatic winner selection
+- **Reroll System** - Pick new winners if needed
+
+### 🎂 Birthday System
+- **Birthday Tracking** - Never miss a birthday
+- **Auto Announcements** - Celebrate automatically
+- **Timezone Support** - Accurate worldwide tracking
+
+### 🔧 Utility Tools
+- **Report System** - Report issues to staff
+- **Todo Lists** - Personal task management
+- **First Message** - Jump to channel's first message
+
+### 👋 Welcome System
+- **Welcome Messages** - Greet new members
+- **Auto Roles** - Assign roles on join
+- **Custom Embeds** - Personalized messages
+
+</td>
+</tr>
+</table>
+
+<a name="quick-setup"></a>
+
+## 🚀 Quick Setup (recommend)
+
+### 📹 Video Tutorial
+For a detailed step-by-step setup guide, watch our comprehensive video tutorial:
+[**ErwinBot Setup Tutorial**](https://www.youtube.com/@TouchDisc)
+<a name="manual-installation-steps"></a>
+## ⚙️ Manual Installation Steps
+
+### Prerequisites
+- Node.js 18.0.0 or higher
+- PostgreSQL server (recommended) or memory storage fallback
+- Discord bot application with proper intents
+
+1. **Clone the Repository**
+   ```bash
+    git clone https://github.com/kirubeshvarman28/ErwinBot.git
+   cd ErwinBot
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` with your configuration (only the following variables require configuration, leave remaining variables as default):
+   ```env
+   # Discord Bot Configuration
+   DISCORD_TOKEN=your_discord_bot_token_here
+   CLIENT_ID=your_discord_client_id_here
+   GUILD_ID=your_discord_guild_id_here
+
+   # PostgreSQL Configuration (Primary Database)
+   POSTGRES_URL=postgresql://postgres:yourpassword@localhost:5432/erwinbot
+   POSTGRES_HOST=localhost
+   POSTGRES_PORT=5432
+   POSTGRES_DB=erwinbot
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=yourpassword
+   ```
+
+   Production note:
+   - `NODE_ENV=production`
+   - `LOG_LEVEL=warn` for a clean production console (critical issues + startup status)
+   - `LOG_LEVEL=info` if you want more detailed operational logs
+   - If your chosen `PORT` is already used, ErwinBot automatically tries the next port(s)
+
+   Environment options reference:
+   - `NODE_ENV`: `development`, `production`, `test` (any non-`production` value is treated as non-production)
+   - `LOG_LEVEL`: `error`, `warn`, `info`, `http`, `verbose`, `debug`, `silly`
+   - Accepted aliases for `LOG_LEVEL` in this bot: `warns`, `warning`, `warnings` → `warn`
+
+   Recommended production `.env` (easy mode + default mode):
+   ```env
+   NODE_ENV=production
+   LOG_LEVEL=warn
+   WEB_HOST=0.0.0.0
+   PORT=3000
+   PORT_RETRY_ATTEMPTS=5
+   ```
+   This gives clear startup/online status messages while keeping logs simple for non-technical operators.
+   If port `3000` is busy, the bot tries the next available ports automatically (up to `PORT_RETRY_ATTEMPTS`).
+
+4. **Setup PostgreSQL Database** (Optional but recommended)
+   ```bash
+   # Create database and user
+   createdb erwinbot
+   createuser erwinbot
+   psql -c "ALTER USER erwinbot PASSWORD 'yourpassword';"
+   psql -c "GRANT ALL PRIVILEGES ON DATABASE erwinbot TO erwinbot;"
+   ```
+
+5. **Test Database Connection**
+   ```bash
+   npm run test-postgres
+   ```
+
+6. **Start the Bot**
+   ```bash
+   npm start
+   ```
+
+### Migration Version Guard
+- `npm run migrate` applies schema setup and records the expected schema version.
+- `npm run migrate:check` fails if the database schema version does not match the code's expected version.
+- `npm run migrate:status` prints current vs expected schema version metadata.
+<a name="database-system"></a>
+## 🗄️ Database System
+
+ErwinBot uses **PostgreSQL** as its primary database with intelligent fallback to memory storage:
+
+### PostgreSQL Features
+- **ACID Compliance**: Reliable transactions and data integrity
+- **High Performance**: Optimized queries and connection pooling
+- **Persistence**: Data survives bot restarts and crashes
+- **Complex Queries**: Advanced data analysis capabilities
+- **Scalability**: Better performance for large datasets
+- **TTL Support**: Automatic key expiration for temporary data
+- **Connection Management**: Automatic reconnection with exponential backoff
+- **Automatic Schema Creation**: Tables and indexes created on connection
+
+### Fallback System
+- **Memory Storage**: Automatic fallback when PostgreSQL is unavailable
+- **Graceful Degradation**: Bot continues functioning without database
+- **Backward Compatibility**: Maintains existing API structure
+- **Zero Downtime**: Seamless switching between database and memory
+<a name="bot-architecture"></a>
+## 🏗️ Bot Architecture
+
+### Technology Stack
+- **Discord.js v14** - Modern Discord API wrapper
+- **Node.js 18+** - JavaScript runtime environment
+- **PostgreSQL** - High-performance relational database
+- **Express.js** - Web server for health checks
+- **Winston** - Advanced logging system
+- **Node-cron** - Scheduled task management
+
+### Bot Intents
+ErwinBot requires the following Discord intents:
+- Bot
+- Applications.commands
+
+### Required Permissions
+- **View Channels**
+- **Send Messages**
+- **Embed Links**
+- **Attach Files**
+- **Read Message History**
+- **Manage Messages**
+- **Manage Channels**
+- **Manage Roles**
+- **Kick Members**
+- **Ban Members**
+- **Moderate Members**
+- **Connect**
+<a name="contributing"></a>
+## 🤝 Contributing
+
+We welcome contributions to ErwinBot! Here's how you can help:
+
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Make your changes**
+4. **Test thoroughly**
+5. **Submit a pull request**
+
+### Development Guidelines
+- Follow existing code style
+- Add proper error handling
+- Include documentation for new features
+- Test with PostgreSQL and memory storage
+
+## 📜 License
+
+ErwinBot is released under the MIT License. See [LICENSE](LICENSE) for details.
+
+## 💌 Thank You
+
+Thank you for choosing ErwinBot for your Discord server! We're constantly working to improve and add new features based on community feedback.
+
+**Made with ❤️**
+
+---
+
+*Last updated: March 2026*
