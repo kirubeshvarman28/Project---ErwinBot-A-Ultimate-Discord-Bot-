@@ -107,8 +107,22 @@ export default {
 
             if (result.success) {
                 const durationDisplay = durationChoices.find(c => c.value === durationMinutes)?.name || `${durationMinutes}m`;
+                
+                // DM the user with strict enforcement note and countdown
+                const restorationTime = Math.floor((Date.now() + durationMs) / 1000);
+                const dmEmbed = warningEmbed(
+                    `Your **${role.name}** role has been removed in **${interaction.guild.name}**.\n\n**Reason:** ${reason}\n**Restoration:** Your role will be restored **<t:${restorationTime}:R>**.\n\n*Note: This is strictly enforced. Manual restoration before the timer ends will be automatically reverted.*`,
+                    "⏳ Role Removal Notification"
+                );
+
+                try {
+                    await targetMember.send({ embeds: [dmEmbed] }).catch(() => null);
+                } catch (dmErr) {
+                    logger.debug(`Could not DM user ${targetMember.id}`);
+                }
+
                 const embed = successEmbed(
-                    `${role} has been removed from ${targetMember} for **${durationDisplay}**.\n**Reason:** ${reason}`,
+                    `${role} has been removed from ${targetMember} for **${durationDisplay}**.\n**Reason:** ${reason}\n**Restoration:** <t:${restorationTime}:R>`,
                     "⏳ Timed Role Removal"
                 );
                 return interaction.reply ? await interaction.reply({ embeds: [embed] }) : await interaction.channel.send({ embeds: [embed] });
