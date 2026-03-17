@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
@@ -17,6 +17,7 @@ import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
+import { TimedRoleService } from './services/timedRoleService.js';
 
 class ErwinBot extends Client {
   constructor() {
@@ -234,7 +235,10 @@ class ErwinBot extends Client {
 
   setupCronJobs() {
     cron.schedule('0 6 * * *', () => checkBirthdays(this));
-    cron.schedule('* * * * *', () => checkGiveaways(this));
+    cron.schedule('* * * * *', () => {
+        checkGiveaways(this);
+        TimedRoleService.checkExpiredRemovals(this);
+    });
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
   }
 
