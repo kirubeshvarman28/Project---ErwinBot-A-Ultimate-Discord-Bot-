@@ -10,6 +10,7 @@ const durationChoices = [
     { name: "1 hour", value: 60 },
     { name: "6 hours", value: 360 },
     { name: "1 day", value: 1440 },
+    { name: "3 days", value: 4320 },
     { name: "1 week", value: 10080 },
 ];
 

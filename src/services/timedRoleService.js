@@ -69,4 +69,22 @@ export class TimedRoleService {
             logger.error('Error checking expired timed roles:', error);
         }
     }
+    static async isRemovalActive(guildId, userId, roleId) {
+        try {
+            const key = `moderation:timed_roles:${guildId}`;
+            const removals = await getFromDb(key, []);
+            
+            const removal = removals.find(r => 
+                r.userId === userId && 
+                r.roleId === roleId && 
+                r.status === 'active' && 
+                r.endsAt > Date.now()
+            );
+            
+            return !!removal;
+        } catch (error) {
+            logger.error('Error checking isRemovalActive:', error);
+            return false;
+        }
+    }
 }

@@ -1,54 +1,41 @@
-import { Events } from 'discord.js';
-import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
+import { TimedRoleService } from '../services/timedRoleService.js';
 import { logger } from '../utils/logger.js';
+import { errorEmbed } from '../utils/embeds.js';
 
 export default {
-  name: Events.GuildMemberUpdate,
-  once: false,
+    name: 'guildMemberUpdate',
+    async execute(oldMember, newMember) {
+        // Only run if roles were changed
+        if (oldMember.roles.cache.size >= newMember.roles.cache.size) return;
 
-  async execute(oldMember, newMember) {
-    try {
-      if (!newMember.guild) return;
-
-      const fields = [];
-
-      
-      fields.push({
-        name: '👤 Member',
-        value: `${newMember.user.tag} (${newMember.user.id})`,
-        inline: true
-      });
-
-      
-      if (oldMember.nickname !== newMember.nickname) {
-        fields.push({
-          name: '🏷️ Old Nickname',
-          value: oldMember.nickname || '*(no nickname)*',
-          inline: true
-        });
-
-        fields.push({
-          name: '🏷️ New Nickname',
-          value: newMember.nickname || '*(no nickname)*',
-          inline: true
-        });
-
-        await logEvent({
-          client: newMember.client,
-          guildId: newMember.guild.id,
-          eventType: EVENT_TYPES.MEMBER_NAME_CHANGE,
-          data: {
-            description: `Member nickname changed: ${newMember.user.tag}`,
-            userId: newMember.user.id,
-            fields
-          }
-        });
-
-        return;
-      }
-
-    } catch (error) {
-      logger.error('Error in guildMemberUpdate event:', error);
+        const guildId = newMember.guild.id;
+        const userId = newMember.id;
+        
+        // Find newly added roles
+        const addedRoles = newMember.roles.cache.filter(role => !oldMember.roles.cache.has(role.id));
+        
+        for (const [roleId, role] of addedRoles) {
+            const isActive = await TimedRoleService.isRemovalActive(guildId, userId, roleId);
+            
+            if (isActive) {
+                try {
+                    // Strict Enforcement: Remove the role immediately
+                    await newMember.roles.remove(role, "Strict Enforcement: User is under a timed role removal period.");
+                    
+                    logger.info(`Strict Enforcement triggered: Role ${role.name} removed from ${newMember.user.tag} in ${newMember.guild.name}`);
+                    
+                    // Optional: Notify the user or log to a channel
+                    try {
+                        await newMember.send({
+                            embeds: [errorEmbed(`You cannot have the **${role.name}** role restored yet. Your timed removal period has not expired.`)]
+                        }).catch(() => null);
+                    } catch (dmErr) {
+                        // Ignore DM errors
+                    }
+                } catch (err) {
+                    logger.error(`Failed to enforce strict role removal for ${role.name} on ${newMember.user.tag}:`, err);
+                }
+            }
+        }
     }
-  }
 };
