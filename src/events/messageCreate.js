@@ -19,6 +19,25 @@ export default {
 
       if (message.author.bot || !message.guild) return;
 
+      // Handle Prefix Commands
+      const prefix = '!';
+      if (message.content.startsWith(prefix)) {
+        const args = message.content.slice(prefix.length).trim().split(/ +/);
+        const commandName = args.shift().toLowerCase();
+
+        const command = client.commands.get(commandName);
+        if (command) {
+          try {
+            // Mock interaction-like object for prefix commands if needed, 
+            // but many of our new commands check if interaction.options exists.
+            await command.execute(message, {}, client, args);
+            logger.info(`Prefix command executed: !${commandName} by ${message.author.tag}`);
+          } catch (error) {
+            logger.error(`Error executing prefix command !${commandName}:`, error);
+          }
+        }
+      }
+
       await handleLeveling(message, client);
     } catch (error) {
       logger.error('Error in messageCreate event:', error);
