@@ -1,4 +1,4 @@
-import { MessageFlags } from 'discord.js';
+import { MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { createEmbed, errorEmbed, successEmbed } from '../../../utils/embeds.js';
 import { setBirthday } from '../../../services/birthdayService.js';
 import { logger } from '../../../utils/logger.js';
@@ -12,16 +12,29 @@ export default {
 
             const month = interaction.options.getInteger("month");
             const day = interaction.options.getInteger("day");
-            const userId = interaction.user.id;
+            const targetUser = interaction.options.getUser("user") || interaction.user;
+            const userId = targetUser.id;
             const guildId = interaction.guildId;
 
-            
+            // 1. Permission Check: Only Admins can set birthdays for others
+            if (userId !== interaction.user.id && !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                return await InteractionHelper.safeEditReply(interaction, {
+                    embeds: [errorEmbed(
+                        "Permission Denied",
+                        "You need the `Manage Server` permission to set birthdays for other members."
+                    )],
+                    flags: MessageFlags.Ephemeral
+                });
+            }
+
+            // 2. Set Birthday in Database
             const result = await setBirthday(client, guildId, userId, month, day);
             
+            const targetMention = userId === interaction.user.id ? "Your" : `<@${userId}>'s`;
             await InteractionHelper.safeEditReply(interaction, {
                 embeds: [successEmbed(
-                    `Your birthday has been set to **${result.data.monthName} ${result.data.day}**!`,
-                    "Birthday Set! 🎂"
+                    `${targetMention} birthday has been set to **${result.data.monthName} ${result.data.day}**!`,
+                    "Birthday Updated! 🎂"
                 )]
             });
         } catch (error) {

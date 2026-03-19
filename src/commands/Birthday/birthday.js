@@ -10,6 +10,8 @@ import birthdayRemove from './modules/birthday_remove.js';
 import nextBirthdays from './modules/next_birthdays.js';
 
 import birthdaySync from './modules/birthday_sync.js';
+import birthdayFetch from './modules/birthday_fetch.js';
+import birthdayFetchall from './modules/birthday_fetchall.js';
 import birthdaySetup from './modules/birthday_setup.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
 import { ChannelType } from 'discord.js';
@@ -36,6 +38,12 @@ export default {
                         .setRequired(true)
                         .setMinValue(1)
                         .setMaxValue(31)
+                )
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('ADMIN ONLY: User to set birthday for')
+                        .setRequired(false)
                 )
         )
         .addSubcommand(subcommand =>
@@ -68,6 +76,22 @@ export default {
             subcommand
                 .setName('sync')
                 .setDescription('Automatically fetch your birthday if you set it in another server')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('fetch')
+                .setDescription('Try to find a users DOB from their server applications')
+                .addUserOption(option =>
+                    option
+                        .setName('user')
+                        .setDescription('User to fetch birthday for')
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('fetchall')
+                .setDescription('ADMIN: Scrape all members for birthdays from applications')
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -105,6 +129,10 @@ export default {
                     return await nextBirthdays.execute(interaction, config, client);
                 case 'sync':
                     return await birthdaySync.execute(interaction, config, client);
+                case 'fetch':
+                    return await birthdayFetch.execute(interaction, config, client);
+                case 'fetchall':
+                    return await birthdayFetchall.execute(interaction, config, client);
                 case 'setup':
                     return await birthdaySetup.execute(interaction, config, client);
                 default:
