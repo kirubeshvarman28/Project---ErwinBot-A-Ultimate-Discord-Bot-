@@ -9,7 +9,10 @@ import birthdayList from './modules/birthday_list.js';
 import birthdayRemove from './modules/birthday_remove.js';
 import nextBirthdays from './modules/next_birthdays.js';
 
+import birthdaySync from './modules/birthday_sync.js';
+import birthdaySetup from './modules/birthday_setup.js';
 import { InteractionHelper } from '../../utils/interactionHelper.js';
+import { ChannelType } from 'discord.js';
 export default {
     data: new SlashCommandBuilder()
         .setName('birthday')
@@ -60,6 +63,29 @@ export default {
             subcommand
                 .setName('next')
                 .setDescription('Show upcoming birthdays')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('sync')
+                .setDescription('Automatically fetch your birthday if you set it in another server')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('setup')
+                .setDescription('ADMIN: Configure birthday announcement channel and role')
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription('The channel where birthday wishes will be sent')
+                        .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
+                )
+                .addRoleOption(option =>
+                    option
+                        .setName('role')
+                        .setDescription('The role to give to users on their birthday')
+                        .setRequired(false)
+                )
         ),
 
     async execute(interaction, config, client) {
@@ -77,6 +103,10 @@ export default {
                     return await birthdayRemove.execute(interaction, config, client);
                 case 'next':
                     return await nextBirthdays.execute(interaction, config, client);
+                case 'sync':
+                    return await birthdaySync.execute(interaction, config, client);
+                case 'setup':
+                    return await birthdaySetup.execute(interaction, config, client);
                 default:
                     return InteractionHelper.safeReply(interaction, {
                         embeds: [errorEmbed('Error', 'Unknown subcommand')],

@@ -259,6 +259,12 @@ export function unwrapReplitData(data) {
 
 export const getGuildConfigKey = (guildId) => `guild:${guildId}:config`;
 export const getGuildBirthdaysKey = (guildId) => `guild:${guildId}:birthdays`;
+/**
+ * Consistent key for global user birthday storage (cross-guild)
+ * @param {string} userId - Discord User ID
+ * @returns {string} Database key
+ */
+export const getGlobalBirthdayKey = (userId) => `user:${userId}:birthday`;
 
 /**
  * Get or initialize guild configuration
@@ -367,7 +373,7 @@ export async function getGuildBirthdays(client, guildId) {
 }
 
 /**
- * Set a user's birthday
+ * Set a user's birthday (saves both guild-specific and global records)
  * @param {Object} client - Discord client with database
  * @param {string} guildId - Guild ID
  * @param {string} userId - User ID
@@ -382,14 +388,41 @@ export async function setBirthday(client, guildId, userId, month, day) {
             return false;
         }
 
-        const key = getGuildBirthdaysKey(guildId);
-        const birthdays = await getGuildBirthdays(client, guildId);
-        birthdays[userId] = { month, day };
-        await client.db.set(key, birthdays);
+        // 1. Save to guild-specific storage
+        const guildKey = getGuildBirthdaysKey(guildId);
+        const guildBirthdays = await getGuildBirthdays(client, guildId);
+        guildBirthdays[userId] = { month, day, updated_at: new Date().toISOString() };
+        await client.db.set(guildKey, guildBirthdays);
+
+        // 2. Save to global user storage (for automatic cross-guild fetching)
+        const globalKey = getGlobalBirthdayKey(userId);
+        await client.db.set(globalKey, { month, day, updated_at: new Date().toISOString() });
+
         return true;
     } catch (error) {
         logger.error(`Error setting birthday for user ${userId} in guild ${guildId}:`, error);
         return false;
+    }
+}
+
+/**
+ * Fetch a user's global birthday from database
+ * @param {Object} client - Discord client with database
+ * @param {string} userId - User ID
+ * @returns {Promise<Object|null>} Birthday data or null
+ */
+export async function getGlobalBirthday(client, userId) {
+    try {
+        if (!client.db || typeof client.db.get !== "function") {
+            return null;
+        }
+
+        const key = getGlobalBirthdayKey(userId);
+        const data = await client.db.get(key);
+        return unwrapReplitData(data);
+    } catch (error) {
+        logger.error(`Error fetching global birthday for user ${userId}:`, error);
+        return null;
     }
 }
 

@@ -127,11 +127,30 @@ export async function setBirthday(client, guildId, userId, month, day) {
 
 
 
+/**
+ * Retrieves a user's birthday, falling back to global database if not set in guild
+ * @param {Object} client - Discord client
+ * @param {string} guildId - Current guild ID
+ * @param {string} userId - Target user ID
+ * @returns {Promise<Object|null>} Birthday object with month, day, and monthName
+ */
 export async function getUserBirthday(client, guildId, userId) {
   try {
+    // 1. Check guild-specific birthdays first
     const birthdays = await getGuildBirthdays(client, guildId);
-    const birthdayData = birthdays[userId];
+    let birthdayData = birthdays[userId];
     
+    // 2. Fallback to global birthday if not found in guild
+    // This allows "automatic fetching" as soon as a user joins a new server
+    if (!birthdayData) {
+      const { getGlobalBirthday } = await import('../utils/database.js');
+      birthdayData = await getGlobalBirthday(client, userId);
+      
+      if (birthdayData) {
+        logger.info(`Automatically fetched global birthday for user ${userId} in guild ${guildId}`);
+      }
+    }
+
     if (!birthdayData) {
       return null;
     }
@@ -333,6 +352,10 @@ export async function getTodaysBirthdays(client, guildId) {
 
 
 
+/**
+ * Daily background task to check for birthdays and send announcements
+ * @param {Object} client - Discord client
+ */
 export async function checkBirthdays(client) {
   const today = new Date();
   const currentMonth = today.getUTCMonth() + 1;
@@ -347,20 +370,20 @@ export async function checkBirthdays(client) {
       const config = await getGuildConfig(client, guildId);
       const { birthdayChannelId, birthdayRoleId } = config;
 
-      if (!birthdayChannelId || !birthdayRoleId) {
-        if (process.env.NODE_ENV !== 'production') {
-          logger.debug(`Skipping birthday check for ${guild.name}: Missing channel or role config.`);
-        }
+      // Skip if no channel is configured
+      if (!birthdayChannelId) {
         continue;
       }
 
       const channel = await guild.channels.fetch(birthdayChannelId).catch(() => null);
       if (!channel) continue;
 
+      // Handle role management tracking
       const trackingKey = `bday-role-tracking-${guildId}`;
       const trackingData = (await client.db.get(trackingKey)) || {};
       const updatedTrackingData = { ...trackingData };
       
+      // Remove expired birthday roles
       for (const userId of Object.keys(trackingData)) {
         try {
           const member = await guild.members.fetch(userId).catch(() => null);
@@ -377,34 +400,56 @@ export async function checkBirthdays(client) {
         await client.db.set(trackingKey, updatedTrackingData);
       }
 
-      const birthdaysKey = `birthdays:${guildId}`;
+      // Fetch birthdays for this guild
+      const birthdaysKey = `guild:${guildId}:birthdays`; // Corrected key usage
       const birthdays = (await client.db.get(birthdaysKey)) || {};
       const birthdayMembers = [];
+
       for (const [userId, userData] of Object.entries(birthdays)) {
         if (userData.month === currentMonth && userData.day === currentDay) {
           const member = await guild.members.fetch(userId).catch(() => null);
           if (member) {
             birthdayMembers.push(member);
-            try {
-              await member.roles.add(birthdayRoleId, "Happy Birthday! 🎉");
-              updatedTrackingData[userId] = true;
-            } catch (error) {
-                logger.error(`Error adding birthday role to ${member.user.tag}:`, error);
+            
+            // Add birthday role if configured
+            if (birthdayRoleId) {
+              try {
+                await member.roles.add(birthdayRoleId, "Happy Birthday! 🎉");
+                updatedTrackingData[userId] = true;
+              } catch (error) {
+                  logger.error(`Error adding birthday role to ${member.user.tag}:`, error);
+              }
             }
           }
         }
       }
 
+      // Send the announcement wish
       if (birthdayMembers.length > 0) {
         await client.db.set(trackingKey, updatedTrackingData);
         const mentionList = birthdayMembers.map(m => m.toString()).join(', ');
+        const many = birthdayMembers.length > 1;
         
         await channel.send({
+          content: `HEY ${mentionList}! 🎂`,
           embeds: [{
-            title: '🎉 Happy Birthday! 🎂',
-            description: `A very happy birthday to ${mentionList}! Wishing you an amazing day! 🎈`,
-            color: 0xff69b4,
-            footer: { text: 'Birthday Bot' },
+            title: '✨ A Special Celebration! ✨',
+            description: `Today we celebrate the birth of ${many ? 'some amazing members' : 'a wonderful member'} of our community!\n\n**Happy Birthday ${mentionList}!**\n\nWishing you a day filled with joy, laughter, and plenty of cake! 🎁🎈`,
+            color: 0xE91E63, // Premium Vivid Pink
+            thumbnail: {
+                url: birthdayMembers[0].user.displayAvatarURL({ dynamic: true })
+            },
+            fields: [
+                {
+                    name: '🎉 Community Wish',
+                    value: `May your year ahead be as bright as your smile!`,
+                    inline: false
+                }
+            ],
+            footer: { 
+                text: `${guild.name} • Birthday Celebration`,
+                icon_url: guild.iconURL()
+            },
             timestamp: new Date()
           }]
         });
